@@ -1,0 +1,32 @@
+
+
+body{
+  background: rgb(67, 67, 55)
+}
+::ng-deep{
+
+.sunburst-viz text {
+  font-family: sans-serif;
+  font-size: 14px !important;
+  text-anchor: middle;
+  pointer-events: none;
+  fill: black;
+  -webkit-line-clamp: 3;
+}
+
+.sunburst-viz .text-contour {
+fill: black;
+stroke: none !important;
+
+}
+}
+
+@media only screen and (max-width: 600px) {
+
+::ng-deep{
+  svg{
+    height: 760px !important;
+  }
+
+}
+}
