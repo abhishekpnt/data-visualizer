@@ -1,0 +1,29 @@
+{
+    "name": "root",
+    "children": [
+        {
+            "name": "Event",
+            "count": 10,
+            "children": [
+                {
+                    "name": 2024,
+                    "count": 10
+                }
+            ]
+        },
+        {
+            "name": "Course",
+            "count": 29,
+            "children": [
+                {
+                    "name": 2025,
+                    "count": 14
+                },
+                {
+                    "name": 2024,
+                    "count": 15
+                }
+            ]
+        }
+    ]
+}

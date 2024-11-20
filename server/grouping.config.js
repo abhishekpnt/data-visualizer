@@ -1,26 +1,6 @@
-const groupingConfig = [
-    {
-      key: 'type', // Column name for this level
-      default: 'Uncategorized'
-    },
-    {
-      key: 'enrolled_on',
-      default: 'Unknown Year',
-      format: date => (date ? new Date(date).getFullYear() : 'Unknown Year') // Custom formatter for years
-    },
-    {
-      key: 'enrolled_on',
-      default: 'Unknown Month',
-      format: date =>
-        date
-          ? new Date(date).toLocaleString('default', { month: 'long' }) // Custom formatter for months
-          : 'Unknown Month'
-    },
-    {
-      key: 'org_id',
-      default: 'Unknown Org'
-    }
-  ];
-  
-  module.exports = groupingConfig;
-  
+module.exports = [
+  { key: 'type_identifier', default: 'Unknown Type', format: null },
+  { key: 'year', default: 'Unknown Year', format: val => parseInt(val) },
+  { key: 'month', default: 'Unknown Month', format: val => parseInt(val) },
+  { key: 'org_id', default: 'Unknown Org', format: null },
+];

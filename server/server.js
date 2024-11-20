@@ -1,76 +1,106 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
-const mockData = require('../public/mock/data.json'); // Assuming mock data is in this location
-const groupingConfig = require('./grouping.config'); // Import groupingConfig
+const mockData = require('../public/mock/data.json');
+const groupingConfig = require('./grouping.config');
 
+const app = express();
 app.use(cors());
 
 const pool = {
   query: async (query, values) => {
     let filteredData = mockData;
-    if (values[0]) {
-      filteredData = filteredData.filter(item => item.type_identifier === values[0]);
+    // console.log('=====values',values)
+
+    if (values.typeIdentifier) {
+
+      filteredData = filteredData.filter(item =>{  
+            // console.log('=====item',item)
+       return item.type === values.typeIdentifier});
     }
-    if (values[1]) {
-      filteredData = filteredData.filter(item => item.org_id === values[1]);
+    // console.log('fd',filteredData)
+    if (values.year) {
+      filteredData = filteredData.filter(item => {
+        const itemYear = new Date(item.enrolled_on).getFullYear();
+        return itemYear === parseInt(values.year);
+      });
     }
+    if (values.month) {
+      filteredData = filteredData.filter(item => {
+        const itemMonth = new Date(item.enrolled_on).getMonth() + 1; // Months are zero-based
+        return itemMonth === parseInt(new Date(`${values.month} 1, 2020`).getMonth() + 1);
+      });
+    }
+
+    console.log('filtered',filteredData)
     return { rows: filteredData };
   }
 };
 
-// Recursive function to build hierarchy dynamically
-function buildHierarchy(data, config, level = 0) {
-  if (level >= config.length) {
-    // Base case: leaf nodes
-    return data.map(item => ({
-      ...item,
-      name: item.type_identifier,
-      size: 100, 
-      value: 10
-    }));
-  }
-
-  const { key, default: defaultValue, format } = config[level];
-  const groupedData = data.reduce((acc, item) => {
-    const value = format ? format(item[key]) : item[key] || defaultValue;
-    if (!acc[value]) acc[value] = [];
-    acc[value].push(item);
-    return acc;
-  }, {});
-
-  return Object.keys(groupedData).map(groupKey => ({
-    name: groupKey,
-    children: buildHierarchy(groupedData[groupKey], config, level + 1)
-  }));
+function buildInitialHierarchy() {
+  return {
+    name: 'root',
+    children: [
+      {
+        name: 'Event',
+        count: 10,
+        children: [{ name: 2024, count: 10 }]
+      },
+      {
+        name: 'Course',
+        count: 29,
+        children: [
+          { name: 2025, count: 14 },
+          { name: 2024, count: 15 }
+        ]
+      }
+    ]
+  };
 }
 
 app.get('/user-activity', async (req, res) => {
-  const { typeIdentifier, orgId } = req.query;
+  const { typeIdentifier, year, month } = req.query;
+  console.log('year',year)
+
+  console.log('typeIdentifier',typeIdentifier)
+  console.log('month',month)
+
+  if (!typeIdentifier && !year && !month) {
+    // Initial data load
+    return res.json(buildInitialHierarchy());
+  }
 
   try {
-    const query = `
-      SELECT *
-      FROM user_activity
-      WHERE type_identifier = $1 OR org_id = $2
-    `;
-    const values = [typeIdentifier, orgId];
-
-    const result = await pool.query(query, values);
+    const values = { typeIdentifier, year, month };
+    const result = await pool.query('', values);
     const data = result.rows;
-
-    // Build hierarchy dynamically
-    const hierarchy = {
-      name: 'root',
-      children: buildHierarchy(data, groupingConfig) // Use imported config here
-    };
-
-    // Return the built hierarchy
+  
+    // Group data by month or org_id, then sum counts
+    const groupedData = data.reduce((acc, item) => {
+      // Determine the key based on month or org_id
+      const key = !month ? new Date(item.enrolled_on).toLocaleString('default', { month: 'short' }) : item.org_id || 'Unknown';
+  
+      // Check if the group already exists in the accumulator
+      if (!acc[key]) {
+        acc[key] = { name: key, count: 0 };
+      }
+  
+      // Increase the count for this group
+      acc[key].count += item.count || 1;
+  
+      return acc;
+    }, {});
+  
+    // Convert groupedData object into an array
+    const hierarchy = Object.values(groupedData);
+  
+    // Return the hierarchy as JSON response
     res.json(hierarchy);
+  
   } catch (error) {
     console.error(error);
     res.status(500).send('Server error');
   }
+  
 });
 
 app.listen(3000, () => console.log('Server running on port 3000'));
