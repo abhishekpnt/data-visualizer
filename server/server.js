@@ -30,6 +30,11 @@ const pool = {
         return itemMonth === parseInt(new Date(`${values.month} 1, 2020`).getMonth() + 1);
       });
     }
+    if (values.org) {
+      filteredData = filteredData.filter(item => {
+         return item.org_id === values.org;
+      });
+    }
 
     console.log('filtered',filteredData)
     return { rows: filteredData };
@@ -58,27 +63,37 @@ function buildInitialHierarchy() {
 }
 
 app.get('/user-activity', async (req, res) => {
-  const { typeIdentifier, year, month } = req.query;
+  const { typeIdentifier, year, month,org } = req.query;
   console.log('year',year)
-
   console.log('typeIdentifier',typeIdentifier)
   console.log('month',month)
+  console.log('org',org)
 
-  if (!typeIdentifier && !year && !month) {
+  if (!typeIdentifier && !year && !month)  {
     // Initial data load
     return res.json(buildInitialHierarchy());
   }
 
   try {
-    const values = { typeIdentifier, year, month };
+    const values = { typeIdentifier, year, month, org };
     const result = await pool.query('', values);
     const data = result.rows;
   
     // Group data by month or org_id, then sum counts
     const groupedData = data.reduce((acc, item) => {
       // Determine the key based on month or org_id
-      const key = !month ? new Date(item.enrolled_on).toLocaleString('default', { month: 'short' }) : item.org_id || 'Unknown';
+      // const key = !month ? new Date(item.enrolled_on).toLocaleString('default', { month: 'short' }) : item.org_id || 'Unknown';
   
+      if (org) {
+        // Use type_identifier if at the org level
+        key = item.type_identifier || 'Unknown Type';
+      } else if (month) {
+        // Use a month-level grouping
+        key= item.org_id 
+      } else {
+        // Fallback if month/org isn't available
+        key = new Date(item.enrolled_on).toLocaleString('default', { month: 'short' });
+      }
       // Check if the group already exists in the accumulator
       if (!acc[key]) {
         acc[key] = { name: key, count: 0 };
@@ -89,6 +104,8 @@ app.get('/user-activity', async (req, res) => {
   
       return acc;
     }, {});
+
+    console.log('----',groupedData)
   
     // Convert groupedData object into an array
     const hierarchy = Object.values(groupedData);
