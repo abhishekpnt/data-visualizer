@@ -105,12 +105,16 @@ export class AppComponent implements OnInit {
       
     }
 
+    console.log('----data',this.data)
     this.sunburstChart = Sunburst()
       .data(this.data)
       .label('name')
       .size('count')
       .showTooltip(() => true)
       .showLabels(true)
+      .radiusScaleExponent(1)
+      .minSliceAngle(.4)
+      .transitionDuration(1000)
       .tooltipContent((d, node) => `Size: <i>${this.countLeafNodes(node)}</i>`)
       .handleNonFittingLabel((label, availablePx) => {
         const numFitChars = Math.round(availablePx / 5);

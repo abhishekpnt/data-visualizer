@@ -13,9 +13,10 @@ const pool = {
 
     if (values.typeIdentifier) {
 
-      filteredData = filteredData.filter(item =>{  
-            // console.log('=====item',item)
-       return item.type === values.typeIdentifier});
+      filteredData = filteredData.filter(item => {
+        // console.log('=====item',item)
+        return item.type === values.typeIdentifier
+      });
     }
     // console.log('fd',filteredData)
     if (values.year) {
@@ -32,44 +33,63 @@ const pool = {
     }
     if (values.org) {
       filteredData = filteredData.filter(item => {
-         return item.org_id === values.org;
+        return item.org_id === values.org;
       });
     }
 
-    console.log('filtered',filteredData)
+    console.log('filtered', filteredData)
     return { rows: filteredData };
   }
 };
 
 function buildInitialHierarchy() {
-  return {
+  const data = mockData;
+  const root = {
     name: 'root',
-    children: [
-      {
-        name: 'Event',
-        count: 10,
-        children: [{ name: 2024, count: 10 }]
-      },
-      {
-        name: 'Course',
-        count: 29,
-        children: [
-          { name: 2025, count: 14 },
-          { name: 2024, count: 15 }
-        ]
-      }
-    ]
+    children: []
   };
+
+  const typeMap = {};
+
+  // Process each record to count types and group by year
+  data.forEach(item => {
+    const type = item.type;
+    const year = new Date(item.enrolled_on).getFullYear();
+
+    if (!typeMap[type]) {
+      typeMap[type] = {};
+    }
+    if (!typeMap[type][year]) {
+      typeMap[type][year] = 0;
+    }
+    typeMap[type][year]++;
+  });
+
+  // Convert typeMap to the desired format
+  Object.keys(typeMap).forEach(type => {
+    const children = Object.keys(typeMap[type]).map(year => ({
+      name: parseInt(year),
+      count: typeMap[type][year]
+    }));
+
+    root.children.push({
+      name: type,
+      count: children.reduce((sum, child) => sum + child.count, 0),
+      children
+    });
+  });
+
+  return root;
 }
 
 app.get('/user-activity', async (req, res) => {
-  const { typeIdentifier, year, month,org } = req.query;
-  console.log('year',year)
-  console.log('typeIdentifier',typeIdentifier)
-  console.log('month',month)
-  console.log('org',org)
+  const { typeIdentifier, year, month, org } = req.query;
+  console.log('year', year)
+  console.log('typeIdentifier', typeIdentifier)
+  console.log('month', month)
+  console.log('org', org)
 
-  if (!typeIdentifier && !year && !month)  {
+  if (!typeIdentifier && !year && !month) {
     // Initial data load
     return res.json(buildInitialHierarchy());
   }
@@ -78,18 +98,18 @@ app.get('/user-activity', async (req, res) => {
     const values = { typeIdentifier, year, month, org };
     const result = await pool.query('', values);
     const data = result.rows;
-  
+
     // Group data by month or org_id, then sum counts
     const groupedData = data.reduce((acc, item) => {
       // Determine the key based on month or org_id
       // const key = !month ? new Date(item.enrolled_on).toLocaleString('default', { month: 'short' }) : item.org_id || 'Unknown';
-  
+
       if (org) {
         // Use type_identifier if at the org level
         key = item.type_identifier || 'Unknown Type';
       } else if (month) {
         // Use a month-level grouping
-        key= item.org_id 
+        key = item.org_id
       } else {
         // Fallback if month/org isn't available
         key = new Date(item.enrolled_on).toLocaleString('default', { month: 'short' });
@@ -98,26 +118,26 @@ app.get('/user-activity', async (req, res) => {
       if (!acc[key]) {
         acc[key] = { name: key, count: 0 };
       }
-  
+
       // Increase the count for this group
       acc[key].count += item.count || 1;
-  
+
       return acc;
     }, {});
 
-    console.log('----',groupedData)
-  
+    console.log('----', groupedData)
+
     // Convert groupedData object into an array
     const hierarchy = Object.values(groupedData);
-  
+
     // Return the hierarchy as JSON response
     res.json(hierarchy);
-  
+
   } catch (error) {
     console.error(error);
     res.status(500).send('Server error');
   }
-  
+
 });
 
 app.listen(3000, () => console.log('Server running on port 3000'));
