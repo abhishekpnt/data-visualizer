@@ -95,22 +95,14 @@ export class AppComponent implements OnInit {
       .showTooltip(() => true)
       .showLabels(true)
       .handleNonFittingLabel((label, availablePx) => {
-        const numFitChars = Math.round(availablePx / 7); // ~7px per char
+        const numFitChars = Math.round(availablePx / 5); // ~7px per char
         return numFitChars < 5
           ? null
           : `${label.slice(0, Math.round(numFitChars) - 3)}...`;
       })
       .tooltipContent((d, node) => `Size: <i>${this.countLeafNodes(node)}</i>`)
-
-      // .color((d) => d['color'])(this.sbChartEl.nativeElement);
     .color((node) => {
-      // Access the depth of the node to apply color dynamically
-      // if (node['depth'] === 2) {
-        return colorScale(node.name); // Dynamic color for second level
-      // }
-      // return node['depth'] === 1
-      //   ? '#76c7c0' // Static color for first level
-      //   : colorScale(node.name); // Fallback dynamic color
+        return colorScale(node.name); 
     })(this.sbChartEl.nativeElement);
 
    
